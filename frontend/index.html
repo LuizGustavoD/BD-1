@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Piece Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Rye&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js & html2canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="styles.css?v=3">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header inspirado no One Piece Wiki Fandom -->
+    <header class="main-header">
+      <div class="header-brand">
+        <img src="assets/header_logo.png" alt="One Piece Logo" class="brand-logo-img">
+        <div>
+          <div class="brand-title-row">
+            <h1 class="brand-title">ONE PIECE DASHBOARD</h1>
+            <span class="badge-grandline"><i class="fa-solid fa-compass"></i> GRAND LINE DATABASE</span>
+          </div>
+          <p class="subtitle">Painel de Apresentação Acadêmica — Modelo Relacional PostgreSQL (32 Tabelas)</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="btn-theme-toggle" class="btn btn-secondary" title="Alternar entre Tema Pergaminho Fandom e Mar Abissal">
+          <i class="fa-solid fa-map"></i> Tema Pergaminho
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="tab-overview">
+        <i class="fa-solid fa-chart-pie"></i> Visão Geral & Métricas
+      </button>
+      <button class="nav-tab" data-tab="tab-queries">
+        <i class="fa-solid fa-terminal"></i> Consultas SQL
+      </button>
+      <button class="nav-tab" data-tab="tab-schema">
+        <i class="fa-solid fa-sitemap"></i> Modelo Relacional (32 Tabelas)
+      </button>
+      <button class="nav-tab" data-tab="tab-onepiecedle">
+        <i class="fa-solid fa-gamepad"></i> Onepiecedle Clássico
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <!-- TAB 1: VISÃO GERAL -->
+      <section id="tab-overview" class="tab-panel active">
+        <!-- WANTED Poster Spotlight Banner -->
+        <div class="wanted-banner-card" id="card-wanted-banner">
+          <div class="wanted-poster-frame">
+            <div class="wanted-header-text">WANTED</div>
+            <div class="wanted-img-box">
+              <img src="assets/luffy.png" alt="Monkey D. Luffy" class="wanted-char-img">
+            </div>
+            <div class="wanted-name">MONKEY D. LUFFY</div>
+            <div class="wanted-bounty">
+              <span class="bounty-symbol">฿</span> 3,000,000,000-
+            </div>
+            <div class="wanted-subtext">DEAD OR ALIVE</div>
+          </div>
+
+          <div class="wanted-banner-details">
+            <div class="banner-badge-row">
+              <span class="badge badge-gold"><i class="fa-solid fa-crown"></i> Capitão Yonkou</span>
+              <span class="badge badge-red"><i class="fa-solid fa-skull"></i> Piratas do Chapéu de Palha</span>
+              <span class="badge badge-blue"><i class="fa-solid fa-bolt"></i> Gomu Gomu no Mi (Paramecia)</span>
+            </div>
+            <h2>Capitão em Destaque no Banco de Dados</h2>
+            <p>Membro dos Quatro Imperadores (Yonkou) e líder do bando de maior recompensa acumulada no banco de dados (<strong>฿ 8.816.001.000 Berries</strong>). Registro armazenado no esquema via relacionamentos: <code>Pessoa</code> ➔ <code>Pirata</code> ➔ <code>Pessoa_Cargo</code> ➔ <code>Cargo</code> ➔ <code>Organizacao</code> (Bando).</p>
+            <div class="wanted-banner-stats">
+              <div class="stat-pill"><span class="lbl">Recompensa Individual:</span> <strong class="val">3.000.000.000 ฿</strong></div>
+              <div class="stat-pill"><span class="lbl">Origem:</span> <strong class="val">Vila Fuchsia (East Blue)</strong></div>
+              <div class="stat-pill"><span class="lbl">Espécie:</span> <strong class="val">Humano</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Cards Row -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon gold"><i class="fa-solid fa-coins"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Maior Recompensa do Bando</span>
+              <h3 class="kpi-value">8.816 B ฿</h3>
+              <span class="kpi-sub">Piratas do Chapéu de Palha</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon blue"><i class="fa-solid fa-table"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Esquema Relacional</span>
+              <h3 class="kpi-value">32 Tabelas</h3>
+              <span class="kpi-sub">Normalizado em 3FN</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon purple"><i class="fa-solid fa-users"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Personagens Povoados</span>
+              <h3 class="kpi-value">74+</h3>
+              <span class="kpi-sub">Piratas, Marinha, Revs, Civis</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon red"><i class="fa-solid fa-apple-whole"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Akuma no Mi Mapeadas</span>
+              <h3 class="kpi-value">24 Frutas</h3>
+              <span class="kpi-sub">Paramecia, Logia, Zoan</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <!-- Chart 1: Buscas 3 - Soma de Recompensas por Bando -->
+          <div class="chart-card" id="card-chart-bounty">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-sack-dollar"></i> Top Recompensas Acumuladas por Bando (Berries)</h3>
+                <p>Resultado da <strong>Busca 3</strong> (Soma > 1 Milhão de Berries com CTE e Agregação)</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartBounty"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Distribuição de Akuma no Mi por Tipo -->
+          <div class="chart-card" id="card-chart-akuma">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-bolt"></i> Distribuição de Akuma no Mi</h3>
+                <p>Proporção por categoria de poder (Paramecia vs Logia vs Zoan)</p>
+              </div>
+            </div>
+            <div class="chart-wrapper flex-center">
+              <canvas id="chartAkuma"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 3: Shichibukai Recompensas -->
+          <div class="chart-card" id="card-chart-shichibukai">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-shield-halved"></i> Recompensa dos Shichibukai (Busca 1)</h3>
+                <p>Comparativo dos membros do grupo de Shichibukais cadastrados</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartShichibukai"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 4: Marinheiros Usuários por Patente -->
+          <div class="chart-card" id="card-chart-marines">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-user-ninja"></i> Usuários de Fruta na Marinha por Patente (Busca 2)</h3>
+                <p>Distribuição de poderes entre a alta cúpula da Marinha</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartMarines"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: CONSULTAS SQL -->
+      <section id="tab-queries" class="tab-panel">
+        <div class="queries-container">
+          <!-- Interactive Custom SQL Studio Card -->
+          <div class="query-card custom-sql-card" id="card-custom-sql">
+            <div class="card-header">
+              <div>
+                <span class="badge badge-gold"><i class="fa-solid fa-terminal"></i> Console SQL Interativo</span>
+                <h3>Console de Execução de Consultas SQL</h3>
+                <p class="query-desc">Escreva qualquer instrução SQL para consultar as tabelas do banco de dados <code>onepiece</code> ou alterne pelos seletores pré-definidos abaixo.</p>
+              </div>
+            </div>
+
+            <!-- Preset Queries Bar -->
+            <div class="preset-sql-bar">
+              <button class="btn-preset active" data-preset="q1">Busca 1: Shichibukai</button>
+              <button class="btn-preset" data-preset="q2">Busca 2: Marinha + Frutas</button>
+              <button class="btn-preset" data-preset="q3">Busca 3: Recompensas Bando</button>
+              <button class="btn-preset" data-preset="akuma">Tabela: Akuma_no_Mi</button>
+              <button class="btn-preset" data-preset="bando">Tabela: Bando / Organização</button>
+              <button class="btn-preset" data-preset="navio">Tabela: Navios</button>
+            </div>
+
+            <!-- SQL Textarea Editor -->
+            <div class="sql-editor-container">
+              <div class="editor-header">
+                <span><i class="fa-solid fa-database"></i> Database: <strong>onepiece</strong> (PostgreSQL 16)</span>
+                <span class="editor-shortcuts">Atalho: <code>Ctrl + Enter</code></span>
+              </div>
+              <textarea id="custom-sql-input" class="sql-textarea" rows="5" placeholder="Digite sua instrução SQL aqui... Ex: SELECT * FROM Akuma_no_Mi WHERE tipo = 'Logia';"></textarea>
+              <div class="editor-footer">
+                <button id="btn-run-sql" class="btn btn-primary">
+                  <i class="fa-solid fa-play"></i> Executar Consulta SQL
+                </button>
+                <button id="btn-clear-sql" class="btn btn-secondary">
+                  <i class="fa-solid fa-eraser"></i> Limpar Editor
+                </button>
+              </div>
+            </div>
+
+            <!-- Query Execution Result Status Bar -->
+            <div id="sql-status-bar" class="sql-status-bar">
+              <i class="fa-solid fa-circle-check"></i> <span id="sql-status-msg">Pronto para execução. Selecione ou digite uma consulta.</span>
+            </div>
+
+            <!-- Dynamic Result Table -->
+            <div class="table-wrapper">
+              <table class="data-table" id="custom-sql-table">
+                <thead id="custom-sql-thead">
+                  <!-- Dynamic Headers populated by JS -->
+                </thead>
+                <tbody id="custom-sql-tbody">
+                  <!-- Dynamic Rows populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: MODELO RELACIONAL -->
+      <section id="tab-schema" class="tab-panel">
+        <div class="schema-card" id="card-schema-visual">
+          <div class="card-header">
+            <div>
+              <h3><i class="fa-solid fa-diagram-project"></i> Mapeamento das 32 Tabelas do Banco de Dados</h3>
+              <p>Estrutura normalizada em 3ª Forma Normal (3FN), com especializações e tabelas associativas N:N</p>
+            </div>
+          </div>
+
+          <div class="schema-grid">
+            <!-- Card 1: Entidades Independentes -->
+            <div class="schema-block">
+              <div class="block-title red"><i class="fa-solid fa-cube"></i> Entidades Independentes (10)</div>
+              <ul class="table-list">
+                <li><span class="tb-name"><i class="fa-solid fa-dna" style="color:#38bdf8;"></i> Especie</span> <span class="tb-pk">PK: id_especie</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-map-location-dot" style="color:#ffd166;"></i> Localizacao</span> <span class="tb-pk">PK: id_localizacao</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-apple-whole" style="color:#f43f5e;"></i> Akuma_no_Mi</span> <span class="tb-pk">PK: id_akuma</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-flag" style="color:#c084fc;"></i> Organizacao</span> <span class="tb-pk">PK: id_organizacao</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-ship" style="color:#34d399;"></i> Navio</span> <span class="tb-pk">PK: id_navio</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-scroll" style="color:#fb923c;"></i> Arco</span> <span class="tb-pk">PK: id_arco</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-crown" style="color:#ffd166;"></i> Titulo</span> <span class="tb-pk">PK: id_titulo</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-hand-fist" style="color:#f43f5e;"></i> Sistema_Combate</span> <span class="tb-pk">PK: id_sistema</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-shield-halved" style="color:#38bdf8;"></i> Arma</span> <span class="tb-pk">PK: id_arma</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-monument" style="color:#a78bfa;"></i> Poneglyph</span> <span class="tb-pk">PK: id_poneglyph</span></li>
+              </ul>
+            </div>
+
+            <!-- Card 2: Especializações / Herança -->
+            <div class="schema-block">
+              <div class="block-title blue"><i class="fa-solid fa-sitemap"></i> Especializações 1:1 (10)</div>
+              <div class="spec-group">
+                <div class="spec-parent"><i class="fa-solid fa-user-ninja"></i> Pessoa (Superclasse)</div>
+                <div class="spec-children">
+                  <span class="tb-badge"><i class="fa-solid fa-skull"></i> Pirata</span>
+                  <span class="tb-badge"><i class="fa-solid fa-anchor"></i> Marinheiro</span>
+                  <span class="tb-badge"><i class="fa-solid fa-fire"></i> Revolucionario</span>
+                  <span class="tb-badge"><i class="fa-solid fa-house-user"></i> Civil</span>
+                </div>
+              </div>
+
+              <div class="spec-group">
+                <div class="spec-parent"><i class="fa-solid fa-building-columns"></i> Organizacao (Superclasse)</div>
+                <div class="spec-children">
+                  <span class="tb-badge"><i class="fa-solid fa-flag"></i> Bando</span>
+                  <span class="tb-badge"><i class="fa-solid fa-shield"></i> Marinha</span>
+                  <span class="tb-badge"><i class="fa-solid fa-globe"></i> Governo_Mundial</span>
+                  <span class="tb-badge"><i class="fa-solid fa-volcano"></i> Exercito_Revolucionario</span>
+                </div>
+              </div>
+
+              <div class="spec-group">
+                <div class="spec-parent"><i class="fa-solid fa-book-journal-whills"></i> Poneglyph (Superclasse)</div>
+                <div class="spec-children">
+                  <span class="tb-badge"><i class="fa-solid fa-landmark"></i> Historico</span>
+                  <span class="tb-badge"><i class="fa-solid fa-route"></i> Rota</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Relacionamentos N:N -->
+            <div class="schema-block">
+              <div class="block-title purple"><i class="fa-solid fa-link"></i> Relacionamentos N:N (6)</div>
+              <ul class="table-list">
+                <li><span class="tb-name"><i class="fa-solid fa-gun" style="color:#f43f5e;"></i> Pessoa_Arma</span> <span class="tb-fk">PK (id_pessoa, id_arma)</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-bolt" style="color:#ffd166;"></i> Pessoa_AkumaNoMi</span> <span class="tb-fk">PK (id_pessoa, id_akuma)</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-burst" style="color:#fb923c;"></i> Pessoa_Sistema_Combate</span> <span class="tb-fk">PK (id_pessoa, id_sistema)</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-medal" style="color:#38bdf8;"></i> Pessoa_Titulo</span> <span class="tb-fk">PK (id_pessoa, id_titulo)</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-user-tie" style="color:#a78bfa;"></i> Pessoa_Cargo</span> <span class="tb-fk">PK (id_pessoa, id_cargo)</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-compass" style="color:#34d399;"></i> Localizacao_Poneglyph</span> <span class="tb-fk">PK (id_poneglyph, id_loc)</span></li>
+              </ul>
+            </div>
+
+            <!-- Card 4: Entidades Dependentes -->
+            <div class="schema-block">
+              <div class="block-title gold"><i class="fa-solid fa-diagram-next"></i> Entidades Dependentes (6)</div>
+              <ul class="table-list">
+                <li><span class="tb-name"><i class="fa-solid fa-award" style="color:#ffd166;"></i> Cargo</span> <span class="tb-fk">FK ➔ Organizacao</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-users-viewfinder" style="color:#38bdf8;"></i> Tripulacao</span> <span class="tb-fk">FK ➔ Navio, Bando</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-calendar-day" style="color:#fb923c;"></i> Evento</span> <span class="tb-fk">FK ➔ Arco, Localizacao</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-wand-magic-sparkles" style="color:#c084fc;"></i> Tecnica</span> <span class="tb-fk">FK ➔ Sistema_Combate</span></li>
+                <li><span class="tb-name"><i class="fa-solid fa-gem" style="color:#34d399;"></i> Artefato</span> <span class="tb-fk">FK ➔ Localizacao</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: ONEPIECEDLE CLÁSSICO -->
+      <section id="tab-onepiecedle" class="tab-panel">
+        <div class="onepiecedle-container">
+          <!-- Game Hero Card -->
+          <div class="onepiecedle-hero-card">
+            <div class="onepiecedle-hero-badge">
+              <i class="fa-solid fa-skull-crossbones"></i> JOGO DIÁRIO DE ADIVINHAÇÃO (ESTILO WORDLE/LOLDLE)
+            </div>
+            <h2 class="onepiecedle-title">ONEPIECEDLE CLÁSSICO</h2>
+            <p class="onepiecedle-subtitle">
+              Adivinhe o personagem misterioso do banco de dados <code>onepiece</code>! A cada palpite, as cores revelarão pistas sobre seus atributos:
+            </p>
+
+            <!-- Mode Selector & Stats Row -->
+            <div class="onepiecedle-controls-bar">
+              <div class="mode-toggles">
+                <button id="btn-mode-daily" class="btn-mode active" title="Jogar o personagem oficial do dia">
+                  <i class="fa-solid fa-calendar-day"></i> Desafio Diário
+                </button>
+                <button id="btn-mode-random" class="btn-mode" title="Treino infinito com novos personagens aleatórios">
+                  <i class="fa-solid fa-dice"></i> Treino Aleatório
+                </button>
+              </div>
+
+              <div class="game-meta-pills">
+                <div class="meta-pill">
+                  <span class="meta-lbl">Tentativas:</span>
+                  <strong id="game-tries-counter" class="meta-val">0</strong>
+                </div>
+                <div class="meta-pill">
+                  <span class="meta-lbl">Status:</span>
+                  <span id="game-status-pill" class="badge badge-blue">Em Andamento</span>
+                </div>
+                <button id="btn-restart-game" class="btn btn-secondary btn-sm" title="Reiniciar rodada atual">
+                  <i class="fa-solid fa-rotate-right"></i> Reiniciar
+                </button>
+              </div>
+            </div>
+
+            <!-- Legend Bar -->
+            <div class="onepiecedle-legend">
+              <div class="legend-item"><span class="legend-box correct"></span> Acerto Exato</div>
+              <div class="legend-item"><span class="legend-box partial"></span> Parcial (mesmo tipo/organização)</div>
+              <div class="legend-item"><span class="legend-box wrong"></span> Incorreto</div>
+              <div class="legend-item"><span class="legend-box arrow">⬆️ / ⬇️</span> Recompensa Maior ou Menor</div>
+            </div>
+
+            <!-- Character Search Input with Autocomplete -->
+            <div class="onepiecedle-search-box">
+              <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input 
+                  type="text" 
+                  id="onepiecedle-input" 
+                  class="onepiecedle-input" 
+                  placeholder="Digite o nome de um personagem... (ex: Luffy, Zoro, Shanks, Mihawk)" 
+                  autocomplete="off"
+                >
+                <button id="btn-submit-guess" class="btn btn-primary btn-guess">
+                  <i class="fa-solid fa-crosshairs"></i> Chutar
+                </button>
+              </div>
+              <!-- Autocomplete Dropdown List -->
+              <ul id="autocomplete-list" class="autocomplete-dropdown hidden"></ul>
+            </div>
+          </div>
+
+          <!-- Victory Announcement Card (Hidden initially) -->
+          <div id="onepiecedle-victory-card" class="victory-card hidden">
+            <div class="victory-content">
+              <div class="victory-trophy"><i class="fa-solid fa-crown"></i></div>
+              <h3>PARABÉNS! VOCÊ DESCOBRIU O PERSONAGEM!</h3>
+              <p id="victory-message">Você acertou em poucas tentativas!</p>
+              
+              <div id="victory-character-summary" class="victory-char-summary">
+                <!-- Dynamically populated -->
+              </div>
+
+              <div class="victory-actions">
+                <button id="btn-play-again" class="btn btn-primary">
+                  <i class="fa-solid fa-dice"></i> Jogar Outra Partida (Aleatório)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Guesses Table Section -->
+          <div class="guesses-section">
+            <div class="guesses-header-row">
+              <div class="col-header char-col">Personagem</div>
+              <div class="col-header">Gênero</div>
+              <div class="col-header">Espécie</div>
+              <div class="col-header">Afiliação</div>
+              <div class="col-header">Akuma no Mi</div>
+              <div class="col-header">Origem (Mar)</div>
+              <div class="col-header">Recompensa</div>
+            </div>
+
+            <!-- Guesses Rows Container -->
+            <div id="guesses-list" class="guesses-list">
+              <!-- Dynamically populated guess cards -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="toast-msg">Mensagem</span>
+    </div>
+  </div>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>

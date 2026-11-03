@@ -1,0 +1,27 @@
+name: bd-one-piece
+
+services:
+  # 1. Backend REST API (Python / FastAPI integrado ao PostgreSQL na nuvem - Neon DB)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: onepiece_backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://neondb_owner:npg_cRhzOY0uelr3@ep-damp-night-bd483xlh-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+  # 2. Frontend Web SPA (Nginx servindo estáticos e atuando como proxy reverso para a API)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: onepiece_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

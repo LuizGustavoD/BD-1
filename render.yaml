@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: onepiece-dashboard
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: PYTHONPATH=backend uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_cRhzOY0uelr3@ep-damp-night-bd483xlh-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
