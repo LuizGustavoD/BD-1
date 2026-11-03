@@ -95,6 +95,7 @@ def get_stats():
                         v.especie,
                         v.mar,
                         v.terra_natal,
+                        v.foto_url,
                         v.recompensa,
                         v.fruta,
                         v.tipo_fruta,

@@ -103,6 +103,14 @@ function renderFeaturedCaptain(cap) {
   setElText('wanted-banner-heading', `Capitão em Destaque no Banco de Dados (#${pos} em Recompensa de Bando)`);
   setElText('wanted-char-name', String(cap.nome || '').toUpperCase());
   setElText('wanted-char-bounty', new Intl.NumberFormat('pt-BR').format(Number(cap.recompensa || 0)) + '-');
+
+  // Atualiza a imagem do cartaz de procurado dinamicamente
+  const imgEl = document.getElementById('wanted-char-img');
+  if (imgEl) {
+    imgEl.src = cap.foto_url || 'assets/luffy.png';
+    imgEl.alt = cap.nome || 'Capitão em Destaque';
+  }
+
   setElText('wanted-badge-title', `${cap.cargo || 'Capitão'} (${cap.titulos || 'Pirata'})`);
   setElText('wanted-badge-crew', cap.bando || 'Independente');
   setElText(
