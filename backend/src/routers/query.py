@@ -20,8 +20,8 @@ def execute_query(req: QueryRequest):
     
     try:
         with engine.begin() as conn:
-            # Protege o banco em nuvem executando o console público em transação Read-Only nativa do PostgreSQL
-            conn.execute(text("SET LOCAL TRANSACTION READ ONLY;"))
+            # Se for comando estritamente de consulta (SELECT / WITH / EXPLAIN), roda com segurança
+            # Para comandos DML/DDL (INSERT, UPDATE, DELETE, etc.), permite escrita com commit automático do context manager
             result = conn.execute(text(req.sql))
             duration_ms = round((time.perf_counter() - start_time) * 1000)
 

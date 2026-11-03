@@ -19,7 +19,21 @@ const presetQueries = {
   
   bando: `SELECT o.id_organizacao, o.nome AS bando, o.poder, b.bandeira, b.qtd_tripulacoes\nFROM Organizacao o\nJOIN Bando b ON b.id_organizacao = o.id_organizacao\nWHERE o.tipo = 'Bando';`,
   
-  navio: `SELECT id_navio, nome, tipo, capacidade, estado_atual\nFROM Navio\nORDER BY estado_atual, capacidade DESC;`
+  navio: `SELECT id_navio, nome, tipo, capacidade, estado_atual\nFROM Navio\nORDER BY estado_atual, capacidade DESC;`,
+
+  livre: `-- SQL Livre: Execute qualquer instrução DQL ou DML (SELECT, INSERT, UPDATE, DELETE)
+-- Exemplo de inserção de uma nova fruta ou navio:
+-- INSERT INTO Akuma_no_Mi (nome, poder, tipo) VALUES ('Moku Teste', 'Exemplo de inserção livre', 'Paramecia');
+
+-- Ou consulte personagens com seus cargos e bandos:
+SELECT p.id_pessoa, p.nome, p.alcunha, pi.recompensa, o.nome AS bando, c.nome AS cargo
+FROM Pessoa p
+LEFT JOIN Pirata pi ON pi.id_pessoa = p.id_pessoa
+LEFT JOIN Pessoa_Cargo pc ON pc.id_pessoa = p.id_pessoa
+LEFT JOIN Cargo c ON c.id_cargo = pc.id_cargo
+LEFT JOIN Organizacao o ON o.id_organizacao = c.id_organizacao
+ORDER BY pi.recompensa DESC NULLS LAST
+LIMIT 20;`
 };
 
 let chartInstances = {};
@@ -465,7 +479,13 @@ async function runCustomQuery(rawSql) {
     // Update Status Bar with real PostgreSQL statistics
     if (statusBox) statusBox.className = "sql-status-bar";
     if (statusMsg) {
-      statusMsg.innerHTML = `<i class="fa-solid fa-circle-check"></i> Query executada com sucesso no container PostgreSQL (db:5432) — <strong>${data.rowCount} registro(s) retornado(s)</strong> em ${data.executionTimeMs}ms.`;
+      if (headers.length > 0) {
+        statusMsg.innerHTML = `<i class="fa-solid fa-circle-check"></i> Instrução SQL executada com sucesso no PostgreSQL — <strong>${data.rowCount} registro(s) retornado(s)</strong> em ${data.executionTimeMs}ms.`;
+      } else {
+        statusMsg.innerHTML = `<i class="fa-solid fa-circle-check"></i> Comando DML/DDL executado com sucesso no PostgreSQL — <strong>${data.rowCount} linha(s) afetada(s)</strong> em ${data.executionTimeMs}ms.`;
+        // Recarrega estatísticas e KPIs em caso de INSERT/UPDATE/DELETE
+        loadPostgresStats();
+      }
     }
   } catch (err) {
     console.error(err);
