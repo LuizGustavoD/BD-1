@@ -71,12 +71,87 @@ def get_stats():
             """))
             marine_dist_rows = [dict(row._mapping) for row in marine_dist.fetchall()]
 
-            # KPIs
+            # KPIs consultados diretamente no banco
             total_pessoas = conn.execute(text("SELECT COUNT(*)::int AS total FROM Pessoa;")).fetchone()[0]
             total_akuma = conn.execute(text("SELECT COUNT(*)::int AS total FROM Akuma_no_Mi;")).fetchone()[0]
+            total_tabelas = conn.execute(text("""
+                SELECT COUNT(*)::int AS total
+                FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+            """)).fetchone()[0]
 
-            max_bounty = busca3_rows[0]["soma_recompensas"] if busca3_rows else "8816001000"
-            max_bando = busca3_rows[0]["bando"] if busca3_rows else "Piratas do Chapéu de Palha"
+            max_bounty = busca3_rows[0]["soma_recompensas"] if busca3_rows else 0
+            max_bando = busca3_rows[0]["bando"] if busca3_rows else ""
+            top_capitao_nome = busca3_rows[0]["capitao"] if busca3_rows else None
+
+            # Capitão em destaque consultado dinamicamente no banco (líder do bando de maior recompensa)
+            featured_captain = None
+            if top_capitao_nome:
+                cap_res = conn.execute(text("""
+                    SELECT 
+                        v.id_pessoa,
+                        v.nome,
+                        v.alcunha,
+                        v.especie,
+                        v.mar,
+                        v.terra_natal,
+                        v.recompensa,
+                        v.fruta,
+                        v.tipo_fruta,
+                        v.afiliacao AS bando,
+                        COALESCE(c.nome, 'Capitao') AS cargo,
+                        COALESCE((
+                            SELECT string_agg(t.nome, ' • ' ORDER BY t.id_titulo DESC)
+                            FROM Pessoa_Titulo pt
+                            JOIN Titulo t ON t.id_titulo = pt.id_titulo
+                            WHERE pt.id_pessoa = v.id_pessoa
+                        ), 'Pirata') AS titulos
+                    FROM vw_onepiecedle_characters v
+                    LEFT JOIN Pessoa_Cargo pc ON pc.id_pessoa = v.id_pessoa
+                    LEFT JOIN Cargo c ON c.id_cargo = pc.id_cargo AND c.nome = 'Capitao'
+                    WHERE v.nome = :nome
+                    LIMIT 1;
+                """), {"nome": top_capitao_nome}).fetchone()
+                if cap_res:
+                    featured_captain = dict(cap_res._mapping)
+                    featured_captain["soma_recompensas_bando"] = max_bounty
+
+            # Metadados do Esquema Relacional consultados ao vivo via information_schema
+            schema_res = conn.execute(text("""
+                WITH pks AS (
+                    SELECT tc.table_name,
+                           string_agg(kcu.column_name, ', ' ORDER BY kcu.ordinal_position) AS pk_cols,
+                           COUNT(kcu.column_name)::int AS pk_count
+                    FROM information_schema.table_constraints tc
+                    JOIN information_schema.key_column_usage kcu
+                      ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+                    WHERE tc.constraint_type = 'PRIMARY KEY' AND tc.table_schema = 'public'
+                    GROUP BY tc.table_name
+                ),
+                fks AS (
+                    SELECT tc.table_name,
+                           string_agg(DISTINCT ccu.table_name, ', ' ORDER BY ccu.table_name) AS fk_targets,
+                           string_agg(DISTINCT kcu.column_name, ', ' ORDER BY kcu.column_name) AS fk_cols
+                    FROM information_schema.table_constraints tc
+                    JOIN information_schema.key_column_usage kcu
+                      ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+                    JOIN information_schema.constraint_column_usage ccu
+                      ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+                    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
+                    GROUP BY tc.table_name
+                )
+                SELECT t.table_name,
+                       COALESCE(p.pk_cols, '') AS pk_cols,
+                       COALESCE(p.pk_count, 0) AS pk_count,
+                       COALESCE(f.fk_targets, '') AS fk_targets,
+                       COALESCE(f.fk_cols, '') AS fk_cols
+                FROM information_schema.tables t
+                LEFT JOIN pks p ON p.table_name = t.table_name
+                LEFT JOIN fks f ON f.table_name = t.table_name
+                WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+                ORDER BY t.table_name;
+            """))
+            schema_tables = [dict(row._mapping) for row in schema_res.fetchall()]
 
             return StatsResponse(
                 success=True,
@@ -88,9 +163,12 @@ def get_stats():
                 kpis=KPIs(
                     totalPessoas=total_pessoas,
                     totalAkuma=total_akuma,
+                    totalTabelas=total_tabelas,
                     maxBandoBounty=str(max_bounty),
                     maxBandoNome=str(max_bando)
-                )
+                ),
+                featuredCaptain=featured_captain,
+                schemaTables=schema_tables
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

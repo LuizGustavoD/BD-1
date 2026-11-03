@@ -15,6 +15,7 @@ class QueryResponse(BaseModel):
 class KPIs(BaseModel):
     totalPessoas: int
     totalAkuma: int
+    totalTabelas: int
     maxBandoBounty: Any
     maxBandoNome: str
 
@@ -26,3 +27,5 @@ class StatsResponse(BaseModel):
     akumaDist: List[Dict[str, Any]]
     marineDist: List[Dict[str, Any]]
     kpis: KPIs
+    featuredCaptain: Optional[Dict[str, Any]] = None
+    schemaTables: Optional[List[Dict[str, Any]]] = []

@@ -24,7 +24,7 @@ const presetQueries = {
 
 let chartInstances = {};
 
-// Load Stats & Render Charts directly from PostgreSQL container
+// Load Stats, KPIs, Featured Captain, Schema & Render Charts directly from PostgreSQL
 async function loadPostgresStats() {
   try {
     const response = await fetch('/api/stats');
@@ -35,11 +35,189 @@ async function loadPostgresStats() {
       return;
     }
 
-    // Render Charts with live DB data
+    // 1. Preenche KPIs e contadores de tabelas com dados reais do banco
+    renderKPIs(data.kpis);
+
+    // 2. Preenche o Banner WANTED com o capitão do bando nº 1 consultado no banco
+    renderFeaturedCaptain(data.featuredCaptain);
+
+    // 3. Constrói a Aba 3 (Modelo Relacional) dinamicamente via information_schema
+    renderSchemaFromDB(data.schemaTables);
+
+    // 4. Renderiza os 4 Gráficos com dados reais do banco
     initChartsWithData(data);
   } catch (err) {
     console.error('Falha ao conectar com o backend PostgreSQL:', err);
   }
+}
+
+// Formata valor abreviado em Bilhões/Milhões de Berries
+function formatCompactBerries(val) {
+  const num = Number(val);
+  if (isNaN(num)) return val;
+  if (num >= 1e9) return (num / 1e9).toFixed(3).replace(/\.?0+$/, '') + ' B ฿';
+  if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, '') + ' M ฿';
+  return new Intl.NumberFormat('pt-BR').format(num) + ' ฿';
+}
+
+// Preenche os 4 KPIs e contadores do cabeçalho a partir do PostgreSQL
+function renderKPIs(kpis) {
+  if (!kpis) return;
+
+  const setElText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+
+  setElText('subtitle-tables-count', kpis.totalTabelas);
+  setElText('tab-schema-count', kpis.totalTabelas);
+  setElText('schema-header-count', kpis.totalTabelas);
+
+  setElText('kpi-max-bounty', formatCompactBerries(kpis.maxBandoBounty));
+  setElText('kpi-max-bando', kpis.maxBandoNome);
+  setElText('kpi-total-tables', `${kpis.totalTabelas} Tabelas`);
+  setElText('kpi-total-pessoas', `${kpis.totalPessoas} Personagens`);
+  setElText('kpi-total-akuma', `${kpis.totalAkuma} Frutas`);
+}
+
+// Preenche o Banner WANTED dinamicamente com o capitão retornado pelo PostgreSQL
+function renderFeaturedCaptain(cap) {
+  if (!cap) return;
+
+  const setElText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+
+  setElText('wanted-char-name', String(cap.nome || '').toUpperCase());
+  setElText('wanted-char-bounty', new Intl.NumberFormat('pt-BR').format(Number(cap.recompensa || 0)) + '-');
+  setElText('wanted-badge-title', `${cap.cargo || 'Capitão'} (${cap.titulos || 'Pirata'})`);
+  setElText('wanted-badge-crew', cap.bando || 'Independente');
+  setElText(
+    'wanted-badge-fruit',
+    cap.fruta && cap.fruta !== 'Nenhuma' ? `${cap.fruta} (${cap.tipo_fruta})` : 'Sem Akuma no Mi'
+  );
+
+  const descEl = document.getElementById('wanted-desc-text');
+  if (descEl) {
+    const somaStr = new Intl.NumberFormat('pt-BR').format(Number(cap.soma_recompensas_bando || 0));
+    descEl.innerHTML = `Detentor do título <strong>${escapeHtml(cap.titulos)}</strong> (${escapeHtml(cap.alcunha ? `"${cap.alcunha}"` : '')}) e líder do bando de maior recompensa acumulada no banco de dados (<strong>฿ ${somaStr} Berries</strong>). Registro consultado ao vivo via relacionamentos: <code>Pessoa</code> ➔ <code>Pirata</code> ➔ <code>Pessoa_Cargo</code> ➔ <code>Cargo</code> ➔ <code>Organizacao</code> (Bando).`;
+  }
+
+  setElText('wanted-stat-bounty', formatBerries(cap.recompensa));
+  setElText('wanted-stat-origin', `${cap.terra_natal || '-'} (${cap.mar || '-'})`);
+  setElText('wanted-stat-species', cap.especie || '-');
+}
+
+// Renderiza o Modelo Relacional (Aba 3) dinamicamente a partir do information_schema do PostgreSQL
+function renderSchemaFromDB(tables) {
+  const container = document.getElementById('schema-grid-container');
+  if (!container || !Array.isArray(tables) || tables.length === 0) return;
+
+  // Classificação automática pelas constraints reais (PK e FK) do banco
+  const independent = [];
+  const specializationsByParent = {};
+  const associativeNN = [];
+  const dependent = [];
+
+  tables.forEach(t => {
+    if (t.pk_count > 1) {
+      // PK composta => Tabela Associativa N:N
+      associativeNN.push(t);
+    } else if (!t.fk_targets) {
+      // Sem FK => Entidade Independente
+      independent.push(t);
+    } else if (t.pk_count === 1 && t.pk_cols === t.fk_cols) {
+      // PK simples que também é a própria FK => Especialização 1:1 (Herança)
+      const parent = t.fk_targets;
+      if (!specializationsByParent[parent]) specializationsByParent[parent] = [];
+      specializationsByParent[parent].push(t);
+    } else {
+      // Possui PK própria e FKs para outras tabelas => Entidade Dependente (1:N)
+      dependent.push(t);
+    }
+  });
+
+  const totalSpecCount = Object.values(specializationsByParent).reduce((acc, arr) => acc + arr.length, 0);
+
+  const formatTableName = (name) =>
+    name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('_');
+
+  container.innerHTML = `
+    <!-- Card 1: Entidades Independentes -->
+    <div class="schema-block">
+      <div class="block-title red"><i class="fa-solid fa-cube"></i> Entidades Independentes (${independent.length})</div>
+      <ul class="table-list">
+        ${independent.map(t => `
+          <li class="schema-table-item" data-table="${escapeHtml(t.table_name)}" style="cursor:pointer;" title="Clique para executar SELECT * FROM ${escapeHtml(t.table_name)}">
+            <span class="tb-name"><i class="fa-solid fa-table" style="color:#38bdf8;"></i> ${escapeHtml(formatTableName(t.table_name))}</span>
+            <span class="tb-pk">PK: ${escapeHtml(t.pk_cols)}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+
+    <!-- Card 2: Especializações / Herança 1:1 -->
+    <div class="schema-block">
+      <div class="block-title blue"><i class="fa-solid fa-sitemap"></i> Especializações 1:1 (${totalSpecCount})</div>
+      ${Object.entries(specializationsByParent).map(([parent, children]) => `
+        <div class="spec-group">
+          <div class="spec-parent schema-table-item" data-table="${escapeHtml(parent)}" style="cursor:pointer;" title="Clique para consultar ${escapeHtml(parent)}">
+            <i class="fa-solid fa-layer-group"></i> ${escapeHtml(formatTableName(parent))} (Superclasse)
+          </div>
+          <div class="spec-children">
+            ${children.map(c => `
+              <span class="tb-badge schema-table-item" data-table="${escapeHtml(c.table_name)}" style="cursor:pointer;" title="PK/FK: ${escapeHtml(c.pk_cols)} ➔ ${escapeHtml(parent)}">
+                <i class="fa-solid fa-diagram-subtask"></i> ${escapeHtml(formatTableName(c.table_name))}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Card 3: Relacionamentos N:N -->
+    <div class="schema-block">
+      <div class="block-title purple"><i class="fa-solid fa-link"></i> Relacionamentos N:N (${associativeNN.length})</div>
+      <ul class="table-list">
+        ${associativeNN.map(t => `
+          <li class="schema-table-item" data-table="${escapeHtml(t.table_name)}" style="cursor:pointer;" title="Clique para executar SELECT * FROM ${escapeHtml(t.table_name)}">
+            <span class="tb-name"><i class="fa-solid fa-link" style="color:#c084fc;"></i> ${escapeHtml(formatTableName(t.table_name))}</span>
+            <span class="tb-fk">PK (${escapeHtml(t.pk_cols)})</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+
+    <!-- Card 4: Entidades Dependentes -->
+    <div class="schema-block">
+      <div class="block-title gold"><i class="fa-solid fa-diagram-next"></i> Entidades Dependentes (${dependent.length})</div>
+      <ul class="table-list">
+        ${dependent.map(t => `
+          <li class="schema-table-item" data-table="${escapeHtml(t.table_name)}" style="cursor:pointer;" title="Clique para executar SELECT * FROM ${escapeHtml(t.table_name)}">
+            <span class="tb-name"><i class="fa-solid fa-diagram-next" style="color:#ffd166;"></i> ${escapeHtml(formatTableName(t.table_name))}</span>
+            <span class="tb-fk">FK ➔ ${escapeHtml(t.fk_targets)}</span>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
+
+  // Ao clicar em qualquer tabela da Aba 3, abre o Console SQL (Aba 2) e executa SELECT * FROM <tabela>
+  container.querySelectorAll('.schema-table-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const tbName = el.getAttribute('data-table');
+      if (!tbName) return;
+      const sql = `SELECT * FROM ${tbName} LIMIT 50;`;
+      const textarea = document.getElementById('custom-sql-input');
+      if (textarea) textarea.value = sql;
+      document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+      const queryTabBtn = document.querySelector('.nav-tab[data-tab="tab-queries"]');
+      queryTabBtn?.click();
+      runCustomQuery(sql);
+      showToast(`Consultando tabela "${tbName}" no PostgreSQL!`);
+    });
+  });
 }
 
 // Render Charts from PostgreSQL live data
