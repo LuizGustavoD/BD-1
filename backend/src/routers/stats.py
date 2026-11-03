@@ -84,9 +84,9 @@ def get_stats():
             max_bando = busca3_rows[0]["bando"] if busca3_rows else ""
             top_capitao_nome = busca3_rows[0]["capitao"] if busca3_rows else None
 
-            # Capitão em destaque consultado dinamicamente no banco (líder do bando de maior recompensa)
-            featured_captain = None
-            if top_capitao_nome:
+            # Capitães em destaque consultados dinamicamente no banco (líderes dos bandos ordenados por recompensa acumulada)
+            featured_captains = []
+            for b_row in busca3_rows:
                 cap_res = conn.execute(text("""
                     SELECT 
                         v.id_pessoa,
@@ -105,16 +105,26 @@ def get_stats():
                             FROM Pessoa_Titulo pt
                             JOIN Titulo t ON t.id_titulo = pt.id_titulo
                             WHERE pt.id_pessoa = v.id_pessoa
-                        ), 'Pirata') AS titulos
+                        ), 'Pirata') AS titulos,
+                        COALESCE((
+                            SELECT string_agg(sc.nome_sistema, ', ' ORDER BY sc.id_sistema)
+                            FROM Pessoa_Sistema_Combate psc
+                            JOIN Sistema_Combate sc ON sc.id_sistema = psc.id_sistema
+                            WHERE psc.id_pessoa = v.id_pessoa
+                        ), 'Combate Pirata') AS sistemas_combate
                     FROM vw_onepiecedle_characters v
                     LEFT JOIN Pessoa_Cargo pc ON pc.id_pessoa = v.id_pessoa
                     LEFT JOIN Cargo c ON c.id_cargo = pc.id_cargo AND c.nome = 'Capitao'
                     WHERE v.nome = :nome
                     LIMIT 1;
-                """), {"nome": top_capitao_nome}).fetchone()
+                """), {"nome": b_row["capitao"]}).fetchone()
                 if cap_res:
-                    featured_captain = dict(cap_res._mapping)
-                    featured_captain["soma_recompensas_bando"] = max_bounty
+                    cap_dict = dict(cap_res._mapping)
+                    cap_dict["soma_recompensas_bando"] = b_row["soma_recompensas"]
+                    cap_dict["posicao_ranking"] = len(featured_captains) + 1
+                    featured_captains.append(cap_dict)
+
+            featured_captain = featured_captains[0] if featured_captains else None
 
             # Metadados do Esquema Relacional consultados ao vivo via information_schema
             schema_res = conn.execute(text("""
@@ -168,6 +178,7 @@ def get_stats():
                     maxBandoNome=str(max_bando)
                 ),
                 featuredCaptain=featured_captain,
+                featuredCaptains=featured_captains,
                 schemaTables=schema_tables
             )
     except Exception as e:

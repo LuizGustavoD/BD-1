@@ -28,4 +28,5 @@ class StatsResponse(BaseModel):
     marineDist: List[Dict[str, Any]]
     kpis: KPIs
     featuredCaptain: Optional[Dict[str, Any]] = None
+    featuredCaptains: Optional[List[Dict[str, Any]]] = []
     schemaTables: Optional[List[Dict[str, Any]]] = []

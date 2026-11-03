@@ -23,6 +23,8 @@ const presetQueries = {
 };
 
 let chartInstances = {};
+let featuredCaptainsList = [];
+let currentCaptainIndex = 0;
 
 // Load Stats, KPIs, Featured Captain, Schema & Render Charts directly from PostgreSQL
 async function loadPostgresStats() {
@@ -38,8 +40,13 @@ async function loadPostgresStats() {
     // 1. Preenche KPIs e contadores de tabelas com dados reais do banco
     renderKPIs(data.kpis);
 
-    // 2. Preenche o Banner WANTED com o capitão do bando nº 1 consultado no banco
-    renderFeaturedCaptain(data.featuredCaptain);
+    // 2. Preenche o Banner WANTED e inicializa o seletor de Capitães consultados no banco
+    featuredCaptainsList = Array.isArray(data.featuredCaptains) && data.featuredCaptains.length > 0
+      ? data.featuredCaptains
+      : (data.featuredCaptain ? [data.featuredCaptain] : []);
+    currentCaptainIndex = 0;
+    renderFeaturedCaptain(featuredCaptainsList[0]);
+    setupCaptainCarousel();
 
     // 3. Constrói a Aba 3 (Modelo Relacional) dinamicamente via information_schema
     renderSchemaFromDB(data.schemaTables);
@@ -89,6 +96,11 @@ function renderFeaturedCaptain(cap) {
     if (el) el.textContent = text;
   };
 
+  const pos = cap.posicao_ranking || (currentCaptainIndex + 1);
+  const totalCaps = featuredCaptainsList.length || 1;
+
+  setElText('wanted-captain-counter', `${pos} / ${totalCaps}`);
+  setElText('wanted-banner-heading', `Capitão em Destaque no Banco de Dados (#${pos} em Recompensa de Bando)`);
   setElText('wanted-char-name', String(cap.nome || '').toUpperCase());
   setElText('wanted-char-bounty', new Intl.NumberFormat('pt-BR').format(Number(cap.recompensa || 0)) + '-');
   setElText('wanted-badge-title', `${cap.cargo || 'Capitão'} (${cap.titulos || 'Pirata'})`);
@@ -101,12 +113,34 @@ function renderFeaturedCaptain(cap) {
   const descEl = document.getElementById('wanted-desc-text');
   if (descEl) {
     const somaStr = new Intl.NumberFormat('pt-BR').format(Number(cap.soma_recompensas_bando || 0));
-    descEl.innerHTML = `Detentor do título <strong>${escapeHtml(cap.titulos)}</strong> (${escapeHtml(cap.alcunha ? `"${cap.alcunha}"` : '')}) e líder do bando de maior recompensa acumulada no banco de dados (<strong>฿ ${somaStr} Berries</strong>). Registro consultado ao vivo via relacionamentos: <code>Pessoa</code> ➔ <code>Pirata</code> ➔ <code>Pessoa_Cargo</code> ➔ <code>Cargo</code> ➔ <code>Organizacao</code> (Bando).`;
+    descEl.innerHTML = `Detentor do título <strong>${escapeHtml(cap.titulos)}</strong> (${escapeHtml(cap.alcunha ? `"${cap.alcunha}"` : '')}) e líder do bando <strong>${escapeHtml(cap.bando)}</strong> com recompensa acumulada no banco de <strong>฿ ${somaStr} Berries</strong>. Registro consultado ao vivo via relacionamentos: <code>Pessoa</code> ➔ <code>Pirata</code> ➔ <code>Pessoa_Cargo</code> ➔ <code>Cargo</code> ➔ <code>Organizacao</code> (Bando).`;
   }
 
   setElText('wanted-stat-bounty', formatBerries(cap.recompensa));
   setElText('wanted-stat-origin', `${cap.terra_natal || '-'} (${cap.mar || '-'})`);
   setElText('wanted-stat-species', cap.especie || '-');
+  setElText('wanted-stat-combat', cap.sistemas_combate || 'Combate Pirata');
+}
+
+function setupCaptainCarousel() {
+  const btnPrev = document.getElementById('btn-prev-captain');
+  const btnNext = document.getElementById('btn-next-captain');
+  if (!btnPrev || !btnNext || btnPrev.dataset.bound === 'true') return;
+
+  btnPrev.dataset.bound = 'true';
+  btnNext.dataset.bound = 'true';
+
+  btnPrev.addEventListener('click', () => {
+    if (featuredCaptainsList.length <= 1) return;
+    currentCaptainIndex = (currentCaptainIndex - 1 + featuredCaptainsList.length) % featuredCaptainsList.length;
+    renderFeaturedCaptain(featuredCaptainsList[currentCaptainIndex]);
+  });
+
+  btnNext.addEventListener('click', () => {
+    if (featuredCaptainsList.length <= 1) return;
+    currentCaptainIndex = (currentCaptainIndex + 1) % featuredCaptainsList.length;
+    renderFeaturedCaptain(featuredCaptainsList[currentCaptainIndex]);
+  });
 }
 
 // Renderiza o Modelo Relacional (Aba 3) dinamicamente a partir do information_schema do PostgreSQL
@@ -514,6 +548,8 @@ const onepieceGame = {
   currentDate: null,
   allCharacters: [],
   guesses: [],
+  hints: [],
+  revealedHintsCount: 0,
   isWon: false,
   isSubmitting: false,
   selectedAutocompleteIndex: -1
@@ -628,11 +664,21 @@ function updateModeButtons() {
 
 function resetGameUI() {
   onepieceGame.guesses = [];
+  onepieceGame.hints = [];
+  onepieceGame.revealedHintsCount = 0;
   onepieceGame.isWon = false;
   onepieceGame.selectedAutocompleteIndex = -1;
 
   const list = document.getElementById('guesses-list');
   if (list) list.innerHTML = '';
+
+  const hintsBox = document.getElementById('onepiecedle-hints-box');
+  if (hintsBox) {
+    hintsBox.innerHTML = '';
+    hintsBox.classList.add('hidden');
+  }
+  const hintCounter = document.getElementById('hint-counter');
+  if (hintCounter) hintCounter.textContent = '0/3';
 
   const input = document.getElementById('onepiecedle-input');
   if (input) {
@@ -649,6 +695,50 @@ function resetGameUI() {
   if (statusPill) {
     statusPill.textContent = 'Em Andamento';
     statusPill.className = 'badge badge-blue';
+  }
+}
+
+// Solicita e revela progressivamente até 3 dicas do personagem secreto consultadas no PostgreSQL
+async function requestNextHint() {
+  if (onepieceGame.isWon) {
+    showToast('Você já descobriu o personagem desta rodada!');
+    return;
+  }
+  if (!onepieceGame.targetId) return;
+
+  if (onepieceGame.revealedHintsCount >= 3) {
+    showToast('Todas as 3 dicas desta rodada já foram reveladas!');
+    return;
+  }
+
+  try {
+    if (onepieceGame.hints.length === 0) {
+      const res = await fetch(`/api/onepiecedle/hint/${onepieceGame.targetId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      onepieceGame.hints = data.hints || [];
+    }
+
+    const nextHint = onepieceGame.hints[onepieceGame.revealedHintsCount];
+    if (!nextHint) return;
+
+    onepieceGame.revealedHintsCount += 1;
+
+    const hintCounter = document.getElementById('hint-counter');
+    if (hintCounter) hintCounter.textContent = `${onepieceGame.revealedHintsCount}/3`;
+
+    const hintsBox = document.getElementById('onepiecedle-hints-box');
+    if (hintsBox) {
+      hintsBox.classList.remove('hidden');
+      const item = document.createElement('div');
+      item.className = 'stat-pill';
+      item.style.borderLeft = '3px solid var(--gold)';
+      item.innerHTML = `<strong style="color: var(--gold);"><i class="fa-solid fa-lightbulb"></i> ${escapeHtml(nextHint.title)}:</strong> <span>${escapeHtml(nextHint.text)}</span>`;
+      hintsBox.appendChild(item);
+    }
+  } catch (err) {
+    console.error('Erro ao buscar dica:', err);
+    showToast('Não foi possível consultar a dica no banco.');
   }
 }
 
@@ -1061,6 +1151,10 @@ function setupGameControls() {
 
   document.getElementById('btn-mode-random')?.addEventListener('click', () => {
     if (onepieceGame.mode !== 'random') startRandomGame();
+  });
+
+  document.getElementById('btn-get-hint')?.addEventListener('click', () => {
+    requestNextHint();
   });
 
   document.getElementById('btn-restart-game')?.addEventListener('click', () => {

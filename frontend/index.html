@@ -72,17 +72,29 @@
           </div>
 
           <div class="wanted-banner-details">
-            <div class="banner-badge-row">
-              <span class="badge badge-gold"><i class="fa-solid fa-crown"></i> <span id="wanted-badge-title">Carregando...</span></span>
-              <span class="badge badge-red"><i class="fa-solid fa-skull"></i> <span id="wanted-badge-crew">Carregando...</span></span>
-              <span class="badge badge-blue"><i class="fa-solid fa-bolt"></i> <span id="wanted-badge-fruit">Carregando...</span></span>
+            <div class="banner-badge-row" style="justify-content: space-between; align-items: center;">
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-gold"><i class="fa-solid fa-crown"></i> <span id="wanted-badge-title">Carregando...</span></span>
+                <span class="badge badge-red"><i class="fa-solid fa-skull"></i> <span id="wanted-badge-crew">Carregando...</span></span>
+                <span class="badge badge-blue"><i class="fa-solid fa-bolt"></i> <span id="wanted-badge-fruit">Carregando...</span></span>
+              </div>
+              <div class="wanted-nav-controls" style="display: flex; align-items: center; gap: 0.4rem;">
+                <button id="btn-prev-captain" class="btn btn-secondary btn-sm" title="Capitão Anterior no Ranking">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span id="wanted-captain-counter" class="badge badge-gold" style="font-size: 0.75rem;">1 / 1</span>
+                <button id="btn-next-captain" class="btn btn-secondary btn-sm" title="Próximo Capitão no Ranking">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
             </div>
-            <h2>Capitão em Destaque no Banco de Dados</h2>
+            <h2 id="wanted-banner-heading">Capitão em Destaque no Banco de Dados (#1 no Ranking)</h2>
             <p id="wanted-desc-text">Consultando líder do bando de maior recompensa acumulada diretamente no PostgreSQL...</p>
             <div class="wanted-banner-stats">
               <div class="stat-pill"><span class="lbl">Recompensa Individual:</span> <strong class="val" id="wanted-stat-bounty">---</strong></div>
               <div class="stat-pill"><span class="lbl">Origem:</span> <strong class="val" id="wanted-stat-origin">---</strong></div>
               <div class="stat-pill"><span class="lbl">Espécie:</span> <strong class="val" id="wanted-stat-species">---</strong></div>
+              <div class="stat-pill"><span class="lbl">Combate / Haki:</span> <strong class="val" id="wanted-stat-combat">---</strong></div>
             </div>
           </div>
         </div>
@@ -190,8 +202,9 @@
             <div class="card-header">
               <div>
                 <span class="badge badge-gold"><i class="fa-solid fa-terminal"></i> Console SQL Interativo</span>
+                <span class="badge badge-blue" style="margin-left: 0.4rem;"><i class="fa-solid fa-shield-halved"></i> Transação Somente-Leitura (Protegido)</span>
                 <h3>Console de Execução de Consultas SQL</h3>
-                <p class="query-desc">Escreva qualquer instrução SQL para consultar as tabelas do banco de dados <code>onepiece</code> ou alterne pelos seletores pré-definidos abaixo.</p>
+                <p class="query-desc">Escreva qualquer instrução SQL (<code>SELECT</code>, <code>WITH</code>, <code>JOIN</code>, <code>GROUP BY</code>) para consultar as tabelas do banco de dados <code>neondb</code> na nuvem ou alterne pelos seletores pré-definidos abaixo.</p>
               </div>
             </div>
 
@@ -293,11 +306,17 @@
                   <span class="meta-lbl">Status:</span>
                   <span id="game-status-pill" class="badge badge-blue">Em Andamento</span>
                 </div>
+                <button id="btn-get-hint" class="btn btn-secondary btn-sm" title="Revelar pista consultada no banco sobre o personagem secreto">
+                  <i class="fa-solid fa-lightbulb" style="color: var(--gold);"></i> Pedir Dica (<span id="hint-counter">0/3</span>)
+                </button>
                 <button id="btn-restart-game" class="btn btn-secondary btn-sm" title="Reiniciar rodada atual">
                   <i class="fa-solid fa-rotate-right"></i> Reiniciar
                 </button>
               </div>
             </div>
+
+            <!-- Progressive Hints Container -->
+            <div id="onepiecedle-hints-box" class="hidden" style="margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem;"></div>
 
             <!-- Legend Bar -->
             <div class="onepiecedle-legend">

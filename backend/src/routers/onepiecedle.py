@@ -197,3 +197,70 @@ def submit_guess(req: GuessRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/hint/{target_id}")
+def get_character_hints(target_id: int):
+    """
+    Consulta no banco pistas progressivas sobre o personagem secreto (Sistemas de Combate/Armas,
+    Poder da Akuma no Mi/Terra Natal e Alcunha Oficial).
+    """
+    engine = get_engine()
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(text("""
+                SELECT 
+                    v.id_pessoa,
+                    v.alcunha,
+                    v.terra_natal,
+                    v.mar,
+                    v.fruta,
+                    COALESCE((
+                        SELECT a.poder FROM Pessoa_AkumaNoMi pa
+                        JOIN Akuma_no_Mi a ON a.id_akuma = pa.id_akuma
+                        WHERE pa.id_pessoa = v.id_pessoa
+                        ORDER BY a.id_akuma ASC LIMIT 1
+                    ), 'Nao possui poder de Akuma no Mi') AS poder_fruta,
+                    COALESCE((
+                        SELECT string_agg(sc.nome_sistema, ', ' ORDER BY sc.id_sistema)
+                        FROM Pessoa_Sistema_Combate psc
+                        JOIN Sistema_Combate sc ON sc.id_sistema = psc.id_sistema
+                        WHERE psc.id_pessoa = v.id_pessoa
+                    ), 'Combate convencional') AS sistemas_combate,
+                    COALESCE((
+                        SELECT string_agg(ar.nome, ', ' ORDER BY ar.id_arma)
+                        FROM Pessoa_Arma par
+                        JOIN Arma ar ON ar.id_arma = par.id_arma
+                        WHERE par.id_pessoa = v.id_pessoa
+                    ), 'Nenhuma arma registrada') AS armas
+                FROM vw_onepiecedle_characters v
+                WHERE v.id_pessoa = :id;
+            """), {"id": target_id}).fetchone()
+
+            if not row:
+                raise HTTPException(status_code=404, detail="Personagem secreto não encontrado.")
+
+            d = dict(row._mapping)
+            return {
+                "success": True,
+                "hints": [
+                    {
+                        "level": 1,
+                        "title": "Dica 1 — Combate & Armas",
+                        "text": f"Estilo/Haki: {d['sistemas_combate']} | Arma: {d['armas']}"
+                    },
+                    {
+                        "level": 2,
+                        "title": "Dica 2 — Terra Natal & Poder da Fruta",
+                        "text": f"Origem: {d['terra_natal']} ({d['mar']}) | Poder: {d['poder_fruta']}"
+                    },
+                    {
+                        "level": 3,
+                        "title": "Dica 3 — Alcunha Oficial",
+                        "text": f"Conhecido nos mares como: \"{d['alcunha']}\""
+                    }
+                ]
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -19,7 +19,9 @@ def execute_query(req: QueryRequest):
     engine = get_engine()
     
     try:
-        with engine.connect() as conn:
+        with engine.begin() as conn:
+            # Protege o banco em nuvem executando o console público em transação Read-Only nativa do PostgreSQL
+            conn.execute(text("SET LOCAL TRANSACTION READ ONLY;"))
             result = conn.execute(text(req.sql))
             duration_ms = round((time.perf_counter() - start_time) * 1000)
 
@@ -28,7 +30,6 @@ def execute_query(req: QueryRequest):
                 rows = [dict(row._mapping) for row in result.fetchall()]
                 row_count = len(rows)
             else:
-                conn.commit()
                 columns = []
                 rows = []
                 row_count = result.rowcount
